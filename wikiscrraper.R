@@ -6,7 +6,7 @@ webpage <- getURL(path)
 webpage <- readLines(tc <- textConnection(webpage)); close(tc)
 
 pagetree <- htmlTreeParse(webpage, error=function(...){}, useInternalNodes = TRUE)
-tablehead <- xpathSApply(pagetree, "//li//", xmlValue)
+tablehead <- xpathSApply(pagetree, "//li", xmlValue)
 tablehead2 <- xpathSApply(pagetree, "//dd", xmlValue)
 tablehead3 <- xpathSApply(pagetree, "//li|//dd", xmlValue)
 class(pagetree)
