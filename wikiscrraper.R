@@ -11,7 +11,8 @@
 library(RCurl) # compose general HTTP requests 
 library(stringr) # stringr is a set of simple wrappers that make R's string functions more consistent, simpler and easier to use. 
 library(igraph) # for displaying graph networks
-
+library(reshape2) # for pivoting data.frame
+library(tFrame)
 
 ### Setup url link to twinned towns list and read page ###
 
@@ -45,6 +46,106 @@ coordinates[,3] <- gsub("}","",coordinates[,3] ) # remove trailing '}' which I c
 
 ### Prepare dataframe already for igraph package ###
 
-coordinates <- 
+## loop to fill in blank place names
+
+for (i in 1:length(coordinates$'4')){  
+
+  if (coordinates$'4'[i] == ""){
+    
+    up <- i - 1
+    coordinates$'4'[i] <- coordinates$'4'[up] 
+  }
+    else  coordinates$'4'[i] 
+}
 
 
+## loop to move lat lon into single column
+
+for (i in 1:length(coordinates$'2')){  
+  
+  if (coordinates$'2'[i] == ""){
+     
+    coordinates$'2'[i] <- coordinates$'3'[i] 
+  }
+  else  coordinates$'2'[i] 
+}
+
+
+## loop to move title into single column
+
+for (i in 1:length(coordinates$'2')){  
+  
+  if (coordinates$'2'[i] == ""){
+    
+    coordinates$'2'[i] <- coordinates$'4'[i] 
+  }
+  else  coordinates$'2'[i] 
+}
+
+## Title to name
+
+for (i in 1:length(coordinates$'1')){  
+  
+  if (grepl("[i]", coordinates$'1'[i]) == TRUE){
+    
+    coordinates$'1'[i] <- "Name"
+  }
+ else  coordinates$'1'[i] 
+}
+
+## Lat / Lon title
+
+for (i in 1:length(coordinates$'1')){  
+  
+  if (grepl("(lat)", coordinates$'1'[i]) == 1){
+    
+    coordinates$'1'[i] <- "Lat"
+  }
+  if (grepl("(lon)", coordinates$'1'[i]) == 1){
+    
+    coordinates$'1'[i] <- "Lon"
+  }
+  
+  else  coordinates$'1'[i] 
+}
+
+coordinates$'3' <- NULL # remove redundant column
+#coordinates$'4' <- NULL 
+## pivot data
+
+coordinates$'1' <- as.factor(coordinates$'1')
+coordinates$'4' <- as.factor(coordinates$'4')
+coordinates$'2' <- as.factor(coordinates$'2')
+
+coordinates$seq <- as.factor(row.names(coordinates))
+
+names(coordinates) <- c('columns', 'rows',"towns")
+
+townLocs <- dcast(coordinates, seq ~ columns, value.var = 'rows')
+
+
+### Join with towns.df
+
+for (i in 1:length(towns.df$'3')){  
+    
+  if (towns.df$'3'[i] == ""){
+    
+    up = i - 1
+    towns.df$'3'[i] <- towns.df$'3'[up] 
+  }
+  else  towns.df$'3'[i] 
+}
+
+towns.df$'3' <- gsub("/wiki/", "", towns.df$'3')
+towns.df$'4' <- gsub("/wiki/", "", towns.df$'4')
+
+towns <- as.data.frame(towns.df[,3:4])
+
+g <- graph.data.frame(d = towns[1:1000,1:2], directed = FALSE)
+
+tkplot(g, vertex.label = V(g)$name)
+myc <- clusters(g, mode="strong")
+mycolor <- c(1:373)
+V(g)$color <- mycolor[myc$membership + 1]
+tkplot(g, layout=layout.fruchterman.reingold)
+plot(g, layout=layout.reingold.tilford)
