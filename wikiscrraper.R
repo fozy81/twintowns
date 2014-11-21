@@ -117,12 +117,11 @@ coordinates$'1' <- as.factor(coordinates$'1')
 coordinates$'4' <- as.factor(coordinates$'4')
 coordinates$'2' <- as.factor(coordinates$'2')
 
-coordinates$seq <- as.factor(row.names(coordinates))
+coordinates$seq <- as.numeric(row.names(coordinates))
 
-names(coordinates) <- c('columns', 'rows',"towns")
+names(coordinates) <- c('columns', 'rows',"towns","seq")
 
-townLocs <- dcast(coordinates, seq ~ columns, value.var = 'rows')
-
+townLocs <- dcast(coordinates[,c(1,2,3,4)], seq + towns  ~ columns, value.var = 'rows')
 
 ### Join with towns.df
 
@@ -140,6 +139,13 @@ towns.df$'3' <- gsub("/wiki/", "", towns.df$'3')
 towns.df$'4' <- gsub("/wiki/", "", towns.df$'4')
 
 towns <- as.data.frame(towns.df[,3:4])
+
+
+
+
+
+
+### iGraph
 
 g <- graph.data.frame(d = towns[1:1000,1:2], directed = FALSE)
 
