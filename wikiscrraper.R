@@ -12,7 +12,7 @@ library(RCurl) # compose general HTTP requests
 library(stringr) # stringr is a set of simple wrappers that make R's string functions more consistent, simpler and easier to use. 
 library(igraph) # for displaying graph networks
 library(reshape2) # for pivoting data.frame
-library(tFrame)
+library(httpuv)
 
 ### Setup url link to twinned towns list and read page ###
 
@@ -29,7 +29,7 @@ towns.df <- do.call(rbind, lapply(towns, data.frame, stringsAsFactors=FALSE,chec
 
 towns.df$'4' <- paste(towns.df$'2', towns.df$'3', sep="") # paste all towns into single column
 
-getCoordinates <- lapply(towns.df$'4'[1:100], function(x){ # lapply function loops through the list of places
+getCoordinates <- lapply(towns.df$'4'[1:length(towns.df$'4')], function(x){ # lapply function loops through the list of places
   
   path <- paste("http://en.wikipedia.org",x,sep="")  # append this url with the town name     
   webpage <- getURL(path)
@@ -42,7 +42,6 @@ return(latlon.df)
 
 coordinates <- do.call(rbind, lapply(getCoordinates, data.frame, stringsAsFactors=FALSE,check.names=F)) # make list into data.frame
 coordinates[,3] <- gsub("}","",coordinates[,3] ) # remove trailing '}' which I couldn't work out how remove during earlier regex 
-
 
 ### Prepare dataframe already for igraph package ###
 
@@ -110,18 +109,15 @@ for (i in 1:length(coordinates$'1')){
 }
 
 coordinates$'3' <- NULL # remove redundant column
-#coordinates$'4' <- NULL 
-## pivot data
 
 coordinates$'1' <- as.factor(coordinates$'1')
 coordinates$'4' <- as.factor(coordinates$'4')
 coordinates$'2' <- as.factor(coordinates$'2')
 
-coordinates$seq <- as.numeric(row.names(coordinates))
+names(coordinates) <- c('columns', 'rows',"towns")
 
-names(coordinates) <- c('columns', 'rows',"towns","seq")
+coordinates$towns <- gsub("^\\s+|\\s+$","",coordinates[,3] ) 
 
-townLocs <- dcast(coordinates[,c(1,2,3,4)], seq + towns  ~ columns, value.var = 'rows')
 
 ### Join with towns.df
 
@@ -140,10 +136,25 @@ towns.df$'4' <- gsub("/wiki/", "", towns.df$'4')
 
 towns <- as.data.frame(towns.df[,3:4])
 
+towns$'4' <- decodeURI(towns$'4')
+towns$'3' <- decodeURI(towns$'3')
+towns$'4' <- gsub("_", " ", towns$'4')
+towns$'3' <- gsub("_", " ", towns$'3')
 
+towns <- towns[!towns$'3' == towns$'4',]  
 
+test <- merge(towns, coordinates[coordinates$columns == 'Lat',], by.x="3",by.y="towns", all.x=T)
+test <- merge(test, coordinates[coordinates$columns == 'Lon',], by.x="3",by.y="towns", all.x=T)
+test <- merge(test, coordinates[coordinates$columns == 'Lat',], by.x="4",by.y="towns", all.x=T)
+test <- merge(test, coordinates[coordinates$columns == 'Lon',], by.x="4",by.y="towns", all.x=T)
 
+df.cols <- grep('columns', names(test),invert=T) 
+test <- test[, c(df.cols)] 
 
+test2 <- test[complete.cases(test),]
+test3 <- test2[! duplicated(test2[,c(2,3,4,5,6)]),]
+names(test3) <- ("town", "townUK","latuk","lonuk","lat","lon")
+test3$geom <- paste("LINESTRING ("  "")" )
 
 ### iGraph
 
