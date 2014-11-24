@@ -153,8 +153,16 @@ test <- test[, c(df.cols)]
 
 test2 <- test[complete.cases(test),]
 test3 <- test2[! duplicated(test2[,c(2,3,4,5,6)]),]
-names(test3) <- ("town", "townUK","latuk","lonuk","lat","lon")
-test3$geom <- paste("LINESTRING ("  "")" )
+names(test3) <- c("town", "townUK","latuk","lonuk","lat","lon")
+
+test3$latuk <- round(as.numeric(as.character(test3[,3])),digits=4)
+test3$lonuk <- round(as.numeric(as.character(test3[,4])),digits=4)
+test3$lat <- round(as.numeric(as.character(test3[,5])),digits=4)
+test3$lon <- round(as.numeric(as.character(test3[,6])),digits=4)
+
+test3$geom <- paste("LINESTRING (",test3$lonuk," ",test3$latuk,", ",test3$lon," ",test3$lat,")",sep="")
+
+write.csv(test3,"twins.csv")
 
 ### iGraph
 
